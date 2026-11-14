@@ -25,9 +25,11 @@ import com.reandroid.dex.base.BlockListArray;
 import com.reandroid.dex.common.FullRefresh;
 import com.reandroid.dex.common.SectionItem;
 import com.reandroid.dex.common.SectionTool;
+import com.reandroid.dex.data.CodeItem;
 import com.reandroid.dex.header.DexHeader;
 import com.reandroid.dex.id.ClassId;
 import com.reandroid.dex.id.IdItem;
+import com.reandroid.dex.id.StringId;
 import com.reandroid.dex.key.Key;
 import com.reandroid.dex.key.TypeKey;
 import com.reandroid.dex.smali.model.SmaliClass;
@@ -137,9 +139,33 @@ public class SectionList extends FixedBlockContainer
     }
 
     @Override
+    protected void onPreRefresh() {
+        super.onPreRefresh();
+        convertToConstStringJumbo();
+    }
+    @Override
     protected void onRefreshed() {
         super.onRefreshed();
         mapList.refresh();
+    }
+    public boolean convertToConstStringJumbo() {
+        // string indexes fit in 16 bits until the section grows past 0xffff
+        Section<StringId> stringSection = getSection(SectionType.STRING_ID);
+        if (stringSection == null || stringSection.getCount() <= 0x10000) {
+            return false;
+        }
+        Section<CodeItem> codeSection = getSection(SectionType.CODE);
+        if (codeSection == null) {
+            return false;
+        }
+        boolean result = false;
+        Iterator<CodeItem> iterator = codeSection.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().getInstructionList().convertToConstStringJumbo()) {
+                result = true;
+            }
+        }
+        return result;
     }
 
     @Override

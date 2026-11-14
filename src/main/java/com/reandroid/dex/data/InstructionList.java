@@ -31,6 +31,7 @@ import com.reandroid.dex.ins.ConstString;
 import com.reandroid.dex.ins.InsExceptionHandler;
 import com.reandroid.dex.ins.Ins;
 import com.reandroid.dex.ins.InsBlockList;
+import com.reandroid.dex.ins.InsConstString;
 import com.reandroid.dex.ins.InsNop;
 import com.reandroid.dex.ins.NullInstruction;
 import com.reandroid.dex.ins.Opcode;
@@ -48,6 +49,7 @@ import com.reandroid.dex.smali.model.SmaliCodeSet;
 import com.reandroid.dex.smali.model.SmaliInstruction;
 import com.reandroid.dex.smali.model.SmaliMethod;
 import com.reandroid.utils.CompareUtil;
+import com.reandroid.utils.collection.ArrayCollection;
 import com.reandroid.utils.collection.ArraySupplierIterator;
 import com.reandroid.utils.collection.CollectionUtil;
 import com.reandroid.utils.collection.CombiningIterator;
@@ -360,6 +362,34 @@ public class InstructionList extends FixedBlockContainer implements
         constNumber.setRegister(register);
         constNumber.setString(stringId);
         return constNumber;
+    }
+    public boolean convertToConstStringJumbo() {
+        List<InsConstString> list = null;
+        for (Ins ins : this) {
+            if (ins instanceof InsConstString &&
+                    ((InsConstString) ins).needsConvertToConstStringJumbo()) {
+                if (list == null) {
+                    list = new ArrayCollection<>();
+                }
+                list.add((InsConstString) ins);
+            }
+        }
+        if (list == null) {
+            return false;
+        }
+        CodeItem codeItem = getCodeItem();
+        // compact try items can not follow resized instructions
+        boolean flattened = codeItem.flattenTryItems();
+        InsBlockList insBlockList = getInsBlockList();
+        Object lock = insBlockList.linkLocked();
+        for (InsConstString constString : list) {
+            constString.toConstStringJumbo();
+        }
+        insBlockList.unlinkLocked(lock);
+        if (flattened) {
+            codeItem.compactSimilarCatches();
+        }
+        return true;
     }
     public<T1 extends Ins> T1 createAt(int index, Opcode<T1> opcode) {
         return createAt(true, index, opcode);

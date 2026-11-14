@@ -58,10 +58,10 @@ public class InsConstString extends Ins21c implements ConstString{
     }
 
     public InsConstStringJumbo toConstStringJumbo(){
-        StringId stringId = getSectionId();
-        if(stringId == null || !needsConvertToConstStringJumbo(stringId)){
+        if(!needsConvertToConstStringJumbo()){
             return null;
         }
+        StringId stringId = getSectionId();
         InsConstStringJumbo stringJumbo = Opcode.CONST_STRING_JUMBO.newInstance();
         stringJumbo.setRegister(getRegister());
         this.replace(stringJumbo);
@@ -69,7 +69,11 @@ public class InsConstString extends Ins21c implements ConstString{
         return stringJumbo;
     }
 
-    private boolean needsConvertToConstStringJumbo(StringId stringId){
+    public boolean needsConvertToConstStringJumbo(){
+        StringId stringId = getSectionId();
+        if(stringId == null){
+            return false;
+        }
         int index = stringId.getIndex();
         return index != (index & 0xffff);
     }
